@@ -4,14 +4,13 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
 from django.utils import six
 from django.utils.text import capfirst
 
 from haystack.exceptions import NotHandled, SpatialError
 from haystack.utils import log as logging
+from haystack.utils.app_loading import haystack_get_model
 
 try:
     from django.utils.encoding import force_text
@@ -49,7 +48,7 @@ class SearchResult(object):
         self.log = self._get_log()
 
         for key, value in kwargs.items():
-            if not key in self.__dict__:
+            if key not in self.__dict__:
                 self.__dict__[key] = value
                 self._additional_fields.append(key)
 
@@ -101,7 +100,7 @@ class SearchResult(object):
     def _get_model(self):
         if self._model is None:
             try:
-                self._model = models.get_model(self.app_label, self.model_name)
+                self._model = haystack_get_model(self.app_label, self.model_name)
             except LookupError:
                 # this changed in change 1.7 to throw an error instead of
                 # returning None when the model isn't found. So catch the
@@ -200,7 +199,6 @@ class SearchResult(object):
         """
         if self._stored_fields is None:
             from haystack import connections
-            from haystack.exceptions import NotHandled
 
             try:
                 index = connections['default'].get_unified_index().get_index(self.model)
